@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Using YouTube as a storage, the hard way"
-date:   2025-08-16 00:48:00 +0200
+date:   2025-08-16 12:04:00 +0200
 categories: Software
 tags: Python YouTube Storage
 ---
@@ -13,7 +13,7 @@ You probably know what I'm talking about. Get a file, convert it in a video, and
 YouTube. Dozens of people already done that, so it probably won't be that hard, no? Well, if
 you want something that really works, it does.
 
-I've read in Hacker News or Hackaday about this kind of projects, but I wondered why they
+I've read in Hacker News or [Hackaday](https://hackaday.com/2023/02/21/youtube-as-infinite-file-storage/) about this kind of projects, but I wondered why they
 either stopped solving some bugs or how nobody just made really "ready to use" tools, so I thought
 it would be fun to make them myself.
 
@@ -35,7 +35,7 @@ positions and with plenty of possible difficulties in its medium (like a dirty t
 
 ## First approaches
 
-My initial approach was the most simple, like the one used by [Dzhang314's YouTubeDrive][3],
+My initial approach was the most simple, like the one used by [Dzhang314's YouTubeDrive](https://github.com/dzhang314/YouTubeDrive),
 where they mapped the bytes in the input data as if they were the colour data from every pixel in
 the output image. This is really fast to program and to process, as you only have to make Pillow
 reinterpret binary data as if it were the bytes of a raw RGB image
@@ -45,9 +45,29 @@ At the time to make the video, I knew the bitrate of 1080p videos was limited in
 Knowing roughly how "more changes in the video is more bitrate" I just repeated the image for a
 known quantity of frames to make the video "more static", and thus lowering that bitrate.
 
+![](assets/img/Chroma_subsampling.svg)
+*Chroma subsampling. Courtesy of Mackenziemacaroni, from Wikipedia*
+
+
 Also, to make it even lower, and to comply with the chroma subsampling, I scaled every pixel by 2,
 making the colour squares 2x2 instead of 1x1 (which is really easy to do, just scale a 720p
 generated image to 1080p with a 'nearest' filter).
+
+```python
+	BW,BH = 1920,1080
+	W,H = int(BW/2), int(BH/2)
+	repeatedFrames = 30
+
+	# Interpret bytes from array as RGB values, making a 720p image, and then
+	# resizes it to 1080p
+	img = Image.frombuffer('RGB', (W,H), bytearray(pixelData))\
+	.resize((BW,BH), Image.Resampling.NEAREST)
+
+	# Insert 30 frames of the same image to the same OpenCVs VideoWriter stream
+	for j in range(repeatedFrames):
+		video.write(np.array(img))
+
+```
 
 But this approach has a big problem: When you convert it to a video, every lossless PNG frame
 becomes a lossy JPEG frame, which losses a lot of colour, and that means changing a lot of bytes.
@@ -91,7 +111,7 @@ probably use [Hamming(8,4)](https://en.wikipedia.org/wiki/Hamming(7,4)), at leas
 representation and 4 bit of data parity.
 
 I currently don't know what are the best algorithms to implement in this kind of project, I just
-know repetition codes (repeating every byte n times) and block codes like Hamming, nothing more, so
+know repetition codes (repeating every bit n times) and block codes like Hamming, nothing more, so
 I'll stick to that until I get everything working. After that, I can try other more efficient codes
 and its reliability.
 
@@ -103,7 +123,7 @@ similar, using colour pixels in their projects, probably encountered similar pro
 what they done, and what I found is they just dumped that raw data as images in videos without any
 other extra processing.
 
-I understand why [Dzhang314's approach][https://github.com/dzhang314/YouTubeDrive] is in that way, as they are just storing Wolfram
+I understand why [Dzhang314's approach](https://github.com/dzhang314/YouTubeDrive) is in that way, as they are just storing Wolfram
 Mathematica data points and you don't need those numbers to be absolutely perfect, but what it is
 completely absurd is the huge amount of coding "tutorials" and weblogs I found around the Internet
 shamelessly copying the approach of [Adam Conway's](https://github.com/Incipiens/DataToVideoEncoderDecoder), without even naming them or how him
@@ -113,16 +133,10 @@ His 'proof of concept' wasn't useful to me as it copy all data to encode to RAM,
 62Mbit/s video, and uses around 50 times the original file, so no, I needed to make a better
 alternative to all what I see.
 
-The original idea of all of this was shown in this Hackaday [Hackaday article](https://hackaday.com/2023/02/21/youtube-as-infinite-file-storage/), but DvorakDwarf,
+![](assets/img/incipiens_ffprobe_result.png)
+*Yikes!*
+
+The original idea of all of this was shown in this [Hackaday article](https://hackaday.com/2023/02/21/youtube-as-infinite-file-storage/), but DvorakDwarf,
 its creator, deleted the project from GitHub. I found an archived version in Internet Archive, but
 I had some Rust dependencies problem while compiling it, so I probably will have to analyse its
 code instead of using it, but not before completing my own version :-)
-
-
-## References
-
-[Hackaday article](https://hackaday.com/2023/02/21/youtube-as-infinite-file-storage/)
-
-[A 'raw' data to video project in python, by Adam Conway (Incipiens)](https://github.com/Incipiens/DataToVideoEncoderDecoder/tree/main)
-
-[A 'raw' data to video project in Wolfram Mathematica, by dzhang314](https://github.com/dzhang314/YouTubeDrive)
