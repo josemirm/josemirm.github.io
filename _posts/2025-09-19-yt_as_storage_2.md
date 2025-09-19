@@ -1,10 +1,12 @@
 ---
 layout: post
 title:  "Using YouTube as a storage II (Error correcting is hard)"
-date:   2025-09-19 22:00:00 +0200
+date:   2025-12-19 21:00:00 +0200
 categories: Software
 tags: Python YouTube Storage
 ---
+
+# WORK IN PROGRESS. THIS SHOULDN'T BE ON PRODUCTION!
 
 ## Continuing where I let it...
 
@@ -54,9 +56,9 @@ least I've learnt not only to implement that Hamming code, but also to be more c
 first, measure twice, and cut after".
 
 
-# Picking a correct algorithm for the task
+## Picking a correct algorithm for the task
 
 
-## Hamming 8,4 and its implementation
+# Hamming 8,4 and its implementation
 
-( MAYBE ADD THIS IN ANOTHER FILE )
+( ADD THIS IN ANOTHER FILE )
