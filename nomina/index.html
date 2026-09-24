@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendario por turnos</title>
+  <link rel="stylesheet" href="ejemplo.css" />
+</head>
+<body>
+  <h1>Calculadora de nómina de SISE</h1>
+  <div class="calendar-container">
+    <h2>Equipo</h2>
+    <div class="seleccion-equipos">
+      <button id="btn-e1" class="btn-equipos">E1 Lam./Ex Acería</button>
+      <button id="btn-e2" class="btn-equipos">E2 Lam./Ex Acería</button>
+      <button id="btn-e3" class="btn-equipos">E3 Lam./Ex Acería</button>
+      <button id="btn-e4" class="btn-equipos">E4 Lam./Ex Acería</button>
+    </div>
+  </div>
+  <div class="calendar-container">
+    <div class="month-header">
+      <button class="btn-transparent" id="prev-month">&lt;</button>
+      <h2 class="month-title" id="titulo">(pon mes y año aquí)</h1>
+      <button class="btn-transparent" id="next-month">&gt;</button>
+    </div>
+    <div class="month-grid" id="calendar"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <script>
+    //
+    // Datos estáticos
+    //
+
+    const PatronTurnoE1 = [
+      'M', 'M', 'M', 'N', 'N', 'N', 'N',
+      'L', 'L', 'L', 'M', 'T', 'T', 'T',
+      'N', 'N', 'N', 'L', 'L', 'M', 'M',
+      'T', 'T', 'T', 'T', 'L', 'L', 'L',
+    ];
+
+    const PatronTurnoE2 = [
+      'T', 'T', 'T', 'T', 'L', 'L', 'L',
+      'M', 'M', 'M', 'N', 'N', 'N', 'N',
+      'L', 'L', 'L', 'M', 'T', 'T', 'T',
+      'N', 'N', 'N', 'L', 'L', 'M', 'M',
+    ];
+
+    const PatronTurnoE3 = [
+      'N', 'N', 'N', 'L', 'L', 'M', 'M',
+      'T', 'T', 'T', 'T', 'L', 'L', 'L',
+      'M', 'M', 'M', 'N', 'N', 'N', 'N',
+      'L', 'L', 'L', 'M', 'T', 'T', 'T',
+    ];
+
+    const PatronTurnoE4 = [
+      'L', 'L', 'L', 'M', 'T', 'T', 'T',
+      'N', 'N', 'N', 'L', 'L', 'M', 'M',
+      'T', 'T', 'T', 'T', 'L', 'L', 'L',
+      'M', 'M', 'M', 'N', 'N', 'N', 'N',
+    ];
+
+    const NombreMeses = [
+      'Enero', 'Febrero', 'Marzo',
+      'April', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre',
+      'Octubre', 'Noviembre', 'Diciembre'
+    ]
+
+    const CabeceraDias = [
+      'Lun', 'Mar', 'Miér', 'Jue', 'Vie', 'Sáb', 'Dom'
+    ];
+
+    const CabeceraDiasCompacta = [
+      'L', 'M', 'X', 'J', 'V', 'S', 'D'
+    ];
+
+    const DictTurnos = {
+      'N': 'Noche', 'T': 'Tarde', 'L':'Libre', 'M': 'Mañana'
+    };
+
+    const DictTurnosCompacto = {
+      'N': 'N', 'T': 'T', 'L':'L', 'M': 'M'
+    };
+
+    //
+    // Datos dinámicos
+    //
+
+    var ahora = new Date(Date.now());
+
+    var CalendActual = {
+      mes: ahora.getMonth(),
+      año: ahora.getFullYear(),
+      equipo: 3
+    }
+
+    let equipoGuardado = localStorage.getItem('equipo');
+    if (localStorage.getItem('equipo') != null) {
+      CalendActual.equipo = Number(equipoGuardado);
+    }
+
+    //
+    // Funciones de generación de turnos y calendario
+    //
+
+    var turnos = [];
+
+    // Empieza a crear el patrón desde el 1 de enero del año. Según el día del
+    // mes en el que empiece (lunes, martes, etc.) tendrá que adelantarse en
+    // dicho patrón. Por ejemplo, el primer sábado del mes caería de mañana
+    function generarPatronTodoAño() {
+      turnos = [];
+      var PatronTurno;
+
+      switch (CalendActual.equipo) {
+      case 1:
+        PatronTurno = PatronTurnoE1;
+        break;
+
+      case 2:
+        PatronTurno = PatronTurnoE2;
+        break;
+
+      case 4:
+        PatronTurno = PatronTurnoE4;
+        break;
+
+      case 3:
+      default:
+        PatronTurno = PatronTurnoE3;
+      }
+
+      turno = -10;
+
+      // Genera un calendario por cada mes del año
+      for (var i=0; i<12; i++) {
+        mes_actual = [];
+        dia_uno = new Date(CalendActual.año, i, 1);
+        ultimo_dia = new Date(CalendActual.año, i+1, 0)
+
+        if (turno < 0) {
+          turno = dia_uno.getDay() - 1;
+          if (turno < 0) turno = 6;
+        }
+
+        total_dias_mes = ultimo_dia.getDate();
+        for (var dia=0; dia < total_dias_mes; dia++) {
+          mes_actual.push(PatronTurno[turno++]);
+          if (turno >= PatronTurno.length) turno = 0
+        }
+
+        turnos.push(mes_actual);
+      }
+
+    }
+
+
+    // Con los datos generados previamente (array 'turnos') se dibuja un
+    // calendario.
+    function generateCalendar() {
+      const calendar = document.getElementById('calendar');
+      calendar.innerHTML = '';
+
+      // Según el ancho de la pantalla del dispositivo, se cambian el contenido
+      // del calendario para que quepa bien
+      const esMovil = window.innerWidth <= 480;
+      const cabeceras = esMovil? CabeceraDiasCompacta : CabeceraDias;
+
+      // Day headers
+      cabeceras.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'day-header';
+        header.textContent = day;
+        calendar.appendChild(header);
+      });
+
+      const firstDay = new Date(CalendActual.año, CalendActual.mes, 1);
+
+      // Adjust so Monday is 0, Sunday is 6
+      let startOffset = firstDay.getDay() - 1;
+      if (startOffset < 0) startOffset = 6;
+
+      // Empty cells before the 1st
+      for (let i = 0; i < startOffset; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'day empty';
+        calendar.appendChild(empty);
+      }
+
+      total_dias_mes = turnos[CalendActual.mes].length;
+
+      const NombreTurnos = esMovil? DictTurnosCompacto : DictTurnos;
+      for (let dia=0; dia < total_dias_mes; dia++) {
+        const cell = document.createElement('div');
+        const turno = turnos[CalendActual.mes][dia]
+
+        cell.className = `day ${turno}`;
+        cell.innerHTML = `
+          <span class="day-number">${dia + 1}</span>
+          <span class="day-label">${NombreTurnos[turno]}</span>
+        `;
+
+        calendar.appendChild(cell);
+      }
+
+
+      document.getElementById('titulo').innerHTML =
+        NombreMeses[CalendActual.mes]+ ' ' + CalendActual.año;
+    }
+
+    // Genera una leyenda bajo el calendario para saber qué significa cada celda
+    // del propio calendario
+    function generateLegend() {
+      const legend = document.getElementById('legend');
+      const shifts = [
+        { name: 'Mañana', class: 'M', color: '#fcf69d' },
+        { name: 'Tarde', class: 'T', color: '#de99bf' },
+        { name: 'Noche', class: 'N', color: '#96ccc7' },
+        { name: 'Libre', class: 'L', color: '#d0e8ce' }
+      ];
+
+      shifts.forEach(shift => {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.innerHTML = `
+          <div class="legend-color" style="background: ${shift.color}"></div>
+          <span>${shift.name}</span>
+        `;
+        legend.appendChild(item);
+      });
+    }
+
+
+    //
+    // Asignación de funciones a los botones de la página
+    //
+
+    document.getElementById('prev-month').onclick = () => {
+      if (CalendActual.mes == 0) {
+        CalendActual.mes = 11;
+        CalendActual.año--;
+      } else {
+        CalendActual.mes--;
+      }
+
+      generateCalendar();
+    }
+
+    document.getElementById('next-month').onclick = () => {
+      if (CalendActual.mes == 11) {
+        CalendActual.mes = 0;
+        CalendActual.año++;
+      } else {
+        CalendActual.mes++;
+      }
+
+      generateCalendar();
+    }
+
+    var btn_e1 = document.getElementById('btn-e1');
+    var btn_e2 = document.getElementById('btn-e2');
+    var btn_e3 = document.getElementById('btn-e3');
+    var btn_e4 = document.getElementById('btn-e4');
+    var btn_eq_activo = btn_e3;
+
+    function cambioEquipo(numEquipo, btnPulsado) {
+      btn_eq_activo.className = "btn-equipos";
+      btnPulsado.className = "btn-equipos-active";
+      btn_eq_activo = btnPulsado;
+      CalendActual.equipo = numEquipo;
+      localStorage.setItem('equipo', numEquipo);
+      generarPatronTodoAño();
+      generateCalendar();
+    }
+
+    btn_e1.onclick = () => {
+      cambioEquipo(1, btn_e1);
+    }
+
+    btn_e2.onclick = () => {
+      cambioEquipo(2, btn_e2);
+    }
+
+    btn_e3.onclick = () => {
+      cambioEquipo(3, btn_e3);
+    }
+
+    btn_e4.onclick = () => {
+      cambioEquipo(4, btn_e4);
+    }
+
+
+    // Regeneración del calendario (con "antirrebote") a la hora de cambiar el
+    // ancho del dispositivo (como cuando se gira la pantalla del móvil)
+    //let tempResize;
+    window.addEventListener('resize', () => {
+      // clearTimeout(tempResize);
+      // tempResize = setTimeout(generateCalendar, 100);
+      generateCalendar();
+    });
+
+    //
+    // Ejecución general de funciones
+    //
+
+    cambioEquipo(
+      CalendActual.equipo,
+      document.getElementById('btn-e' + CalendActual.equipo)
+    );
+
+    generateLegend();
+
+  </script>
+  <noscript>
+    Esta web necesita que JavaScript funcione en tu navegador :-(
+  </noscript>
+</body>
+</html>
